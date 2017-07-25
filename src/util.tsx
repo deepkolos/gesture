@@ -30,6 +30,7 @@ export function calcMutliFingerStatus(touches) {
 }
 
 export function calcMoveStatus(startTouches, touches, time) {
+  const { moveStatus: preMoveStatus } = this.gesture;
   const { x: x1, y: y1 } = startTouches[0];
   const { x: x2, y: y2 } = touches[0];
   const deltaX = x2 - x1;
@@ -42,6 +43,7 @@ export function calcMoveStatus(startTouches, touches, time) {
     time,
     velocity: deltaZ / time,
     angle: _calcAngle(deltaX, deltaY),
+    haveBeenMoveBack: preMoveStatus && Math.abs(deltaZ) < Math.abs(preMoveStatus.z),
   };
 }
 export function calcRotation(startMutliFingerStatus, mutliFingerStatus) {

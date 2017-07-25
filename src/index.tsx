@@ -7,7 +7,7 @@ import {
   shouldTriggerSwipe,
   getDirection, getDirectionEventName,
 } from './util';
-import { PRESS } from './config';
+import { PRESS, PAN } from './config';
 
 export declare type GestureHandler = (s: IGestureStauts) => void;
 
@@ -30,12 +30,14 @@ export declare type SingeFingerMoveStatus = {
   time: number;
   velocity: number;
   angle: number;
+  haveBeenMoveBack?: boolean;
 };
 
 export interface IGesture {
   // config options
   enableRotate?: boolean;
   enablePinch?: boolean;
+  enablePan?: boolean;
 
   // pinch: s.zoom
   onPinch?: GestureHandler;
@@ -89,7 +91,8 @@ export interface IGestureStauts {
 
     mutliFingerStatus?: MultiFingerStatus[];
 
-    /* delta status from touchstart to now, just for singe finger */
+    /* whether is pan */
+    pan?: boolean;
     moveStatus?: SingeFingerMoveStatus;
 
     /* whether is a long tap */
@@ -203,9 +206,11 @@ export default class Gesture extends Component<IGesture, any> {
     this.checkIfMultiTouchStart();
   }
   initGestureStatus = (e) => {
+    const { enablePan, enablePinch, enableRotate } = this.props;
     this.cleanGestureState();
     // store the gesture start state
     const startTouches = this.getTouches(e);
+    const _isMultiTouch = startTouches.length > 1
     const startTime = now();
     const startMutliFingerStatus = calcMutliFingerStatus(startTouches);
     this.setGestureState({
@@ -216,32 +221,32 @@ export default class Gesture extends Component<IGesture, any> {
       time: startTime,
       touches: startTouches,
       mutliFingerStatus: startMutliFingerStatus,
+      /* init type flag */
+      pinch: enablePinch && _isMultiTouch,
+      rotate: enableRotate && _isMultiTouch,
     });
   }
 
   checkIfMultiTouchStart = () => {
-    const { enablePinch, enableRotate } = this.props;
-    const { touches } = this.gesture;
-    if (touches.length > 1 && (enablePinch || enableRotate)) {
-      if (enablePinch) {
-        const startMutliFingerStatus = calcMutliFingerStatus(touches);
-        this.setGestureState({
-         startMutliFingerStatus,
+    const { pinch, rotate, touches } = this.gesture;
+    if (pinch) {
+      const startMutliFingerStatus = calcMutliFingerStatus(touches);
+      this.setGestureState({
+        startMutliFingerStatus,
 
-         /* init pinch status */
-         pinch: true,
-         scale: 1,
-        });
-        this.triggerCombineEvent('onPinch', 'start');
-      }
-      if (enableRotate) {
-        this.setGestureState({
-          /* init rotate status */
-          rotate: true,
-          rotation: 0,
-        });
-        this.triggerCombineEvent('onRotate', 'start');
-      }
+        /* init pinch status */
+        pinch: true,
+        scale: 1,
+      });
+      this.triggerCombineEvent('onPinch', 'start');
+    }
+    if (rotate) {
+      this.setGestureState({
+        /* init rotate status */
+        rotate: true,
+        rotation: 0,
+      });
+      this.triggerCombineEvent('onRotate', 'start');
     }
   }
   _handleTouchMove = (e) => {
@@ -254,9 +259,17 @@ export default class Gesture extends Component<IGesture, any> {
 
     // not a long press
     this.cleanPressTimer();
-
     this.updateGestureStatus(e);
+    this.checkIfPan();
     this.checkIfMultiTouchMove();
+  }
+  checkIfPan = () => {
+    const { enablePan } = this.props;
+    const { moveStatus, touches, pan } = this.gesture;
+    if (!enablePan || touches.length < 2) {
+      return;
+    }
+    if (!moveStatus!.haveBeenMoveBack && !pan && Math.abs(moveStatus!.z) >= PAN.
   }
   checkIfMultiTouchMove = () => {
     const { pinch, rotate, touches, startMutliFingerStatus, mutliFingerStatus } = this.gesture as any;

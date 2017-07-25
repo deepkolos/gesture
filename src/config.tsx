@@ -21,3 +21,8 @@ export const SWIPE = {
   threshold: 10,
   velocity: 0.3,
 };
+
+// http://hammerjs.github.io/recognizer-pan/
+export const PAN = {
+  threshold: 10,
+}
